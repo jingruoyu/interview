@@ -1,3 +1,44 @@
+## 伪类
+
+* checked
+
+	当用CSS一个开关时，可以使用input的CheckBox输入框
+
+	**CheckBox与radio具有checked伪类，可以针对选中和未选中做不同的样式**
+
+* focus
+
+	为div元素添加focus
+
+	div等元素本身没有focus，但是在对其是指tabindex值后，即可拥有focus
+
+	方法一：
+
+		<div tabindex="-1" onfocus="console.log('focus')" onblur="console.log('blur')">Focus me</div>
+
+	指定TabIndex为-1，然后使用编程的方式来获得focus
+
+	方法二：
+
+		<style>
+			#focus-example > .extra { display: none; }
+			#focus-example:focus > .extra { display: block; }
+		</style>
+		<div id="focus-example" tabindex="0">
+		  <div>Focus me!</div>
+		  <div>Hooray!</div>
+		</div>
+
+	指定TabIndex为0，然后CSS中就可以拥有focus伪类
+
+	TabIndex取值含义：
+
+	* -1：用户不能通过tab的形式到达该元素，只能通过编程的方式绑定focus事件来获得focus
+	* 0：用户可以通过tab的方式到达该元素，自动定义tab的顺序
+	* >1：给元素指定一个tab优先级，等于1时优先级最高
+
+## 瀑布流
+
 ## 梯形、三角形的绘制
 
 使用border绘制，利用四条边的交叉绘制三角形及其他图形
