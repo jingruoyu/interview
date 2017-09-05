@@ -144,3 +144,15 @@
 ## BFC
 
 BFC不影响外部的具体解释
+
+## CSS的7阶层叠模型
+
+1. 层叠上下文元素的边框和背景色
+2. 拥有负 z-index 的子堆叠上下文元素 （负的越高越堆叠层级越低）
+3. 正常流式布局，非 inline-block，无 position 定位（static除外）的子元素
+4. 无 position 定位（static除外）的 float 浮动元素
+5. 正常流式布局， inline-block元素，无 position 定位（static除外）的子元素（包括 display:table 和 display:inline ）
+6. 拥有 z-index:0 /auto的子堆叠上下文元素以及“positioned”且层叠级数为0的后代元素
+7. 拥有正 z-index: 的子堆叠上下文元素（正的越低越堆叠层级越低）
+
+简言之，先是父元素的绘制，然后是z-index为负值的元素绘制，然后是没有定义position的元素，最后是按照z-index的层叠级数从0开始逐级绘制。如果层级相同，则按照元素在DOM树中的先后顺序来进行绘制
