@@ -15,6 +15,8 @@ ReactDOM.render函数将模板转化为HTML，插入到指定DOM节点中
 	  document.getElementById('example')
 	);
 
+多次使用render方法时以最后一次为准
+
 ## JSX语法
 
 特点为HTML和JavaScript混写
@@ -234,3 +236,70 @@ getInitialState 函数规定函数内部初始状态，函数返回一个对象�
 	        e.preventDefault();
 	        alert(name);
 	    }
+
+## 条件渲染
+
+react中使用javascript中if或者条件运算符进行条件渲染
+
+条件判断可以依据props和state中变量进行相应判断
+
+javascript中条件运算可以使用
+
+* if
+* &&
+
+		judge && expression
+
+	此种原理即为利用&&与||的计算特点，当条件为true时执行后面语句，为false时不执行第二项
+
+* 三目运算符
+
+**组件不希望进行条件渲染时可以直接返回null，返回null不影响该组件生命周期钩子函数的执行**
+
+## 列表渲染
+
+列表渲染使用js的循环或遍历实现
+
+列表渲染需要为每一项设置相应的key，key的作用在于当DOM发生变化时帮助react判断哪些DOM发生了变化
+
+### key的应用
+
+* key的作用为与兄弟组件进行比较，因此无需为每一项均指定相应的key
+* key在兄弟元素之间唯一，无需全局唯一
+* key作为标识不会传递给子组件，必要时需要使用其他属性传递
+
+	**子组件的props中没有key属性**
+
+## react的双向数据绑定
+
+### 数据双向绑定实现
+
+react组件内部状态只能使用setState函数进行，故在view中状态改变时，需要进行手动的viewmodel操作，此处即为受控组件的意义
+
+	//输入框输入时触发事件更改组件状态	
+	<input type="text" value={this.state.value} onChange={this.handleChange} />
+
+	//手动完成状态更改，函数中使用event.target.value获取输入值
+	handleChange(event) {
+	    this.setState({value: event.target.value});
+	}
+
+在状态修改的同时，也可以对用户输入值可以进行一定的修改和限制
+
+### 多输入解决办法
+
+存在多个input输入框时，通过为input指定name属性进行区分
+
+	  handleInputChange(event) {
+	    const target = event.target;
+	    const value = target.type === 'checkbox' ? target.checked : target.value;
+	    const name = target.name;
+	
+	    this.setState({
+	      [name]: value
+	    });
+	  }
+
+此处最后的状态更改语句用到了ES6的计算属性名，选择相应的变量进行赋值
+
+此即为受控组件的内部原理，受控组件较为复杂，但是其内部的数据流动更为清晰，便于开发
