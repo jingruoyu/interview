@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style type="text/css">
+    #demo1 ol { counter-reset: section 1; list-style-type: none; }
+    #demo1 ol li { counter-increment: section; }
+    #demo1 ol li:before { content: counters(section, "-") ". "; }
+</style>
+</head>
+<body>
+    <div id="demo1">
+        <ol>
+            <li>进风口的爽肤水
+                <ol>
+                    <li>非进口商的</li>
+                    <li>非进口商的</li>
+                    <li>非进口商的</li>
+                </ol>
+            </li>
+            <li>进风口的爽肤水
+                <ol>
+                    <li>非进口商的</li>
+                    <li>
+                        非进口商的
+                        <ol>
+                            <li>将咖啡色的开发商</li>
+                            <li>将咖啡色的开发商</li>
+                            <li>将咖啡色的开发商</li>
+                            <li>将咖啡色的开发商</li>
+                        </ol>
+                    </li>
+                    <li>非进口商的</li>
+                </ol>
+            </li>
+            <li>进风口的爽肤水</li>
+        </ol>
+    </div>
+</body>
+</html>
