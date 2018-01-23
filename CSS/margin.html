@@ -1,24 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-<style>
-
-.test1 {
-	border: 1px solid red;
-	clear: both;
-	margin: 5px;
-}
-.test2 {
-	border: 1px solid red;
-	margin: 5px;
-	clear: both;
-}
-
-
-</style>
+<title>Comparison of positioning schemes II</title>
 </head>
 <body>
-	<p class="test1">some text</p>
-	<p class="test2">some text</p>
+<script src="http://res.wx.qq.com/open/js/jweixin-1.2.0.js"></script>
+<script>
+	var options = {
+		title: "1234",
+		link: "www.miui.com",
+		imgUrl: "",
+		desc: "test weixin share",
+		success: function () {
+			console.log("success")
+		}
+	}
+
+	var params = {                   
+        title: options.title||"",       
+        desc: options.desc||"",         
+        link: options.url||location.href,
+        imgUrl: options.imgUrl||"",     
+        type: options.type||"link",     
+        dataUrl: options.dataUrl||"",   
+        success: options.success||function(){}, 
+        cancel: options.cancel||function(){},
+        fail: options.fail||function(){}
+    };
+
+	wx.config({
+		"debug": true,
+		"appId": "",
+		"timestamp": 1516343273,
+		"nonceStr": "2TDsbXLWt75C3G4i",
+		"signature": "ebe999761c85d11f4dba8252aef7dad336d40efe",
+		"jsApiList": [
+			"checkJsApi",
+			"onMenuShareTimeline",
+			"onMenuShareAppMessage",
+			"onMenuShareQQ",
+			"onMenuShareWeibo"
+		]
+	});
+	wx.error(function(res){
+		console.log(res);
+	})
+	console.log(wx)
+	wx.ready(function(){
+		console.log("ready")
+		wx.onMenuShareTimeline(params);
+	})
+
+    
+</script>
 </body>
 </html>
