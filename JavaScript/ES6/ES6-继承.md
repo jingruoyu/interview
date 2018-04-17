@@ -1,5 +1,5 @@
 # 继承
 
-## mixin、extend、proxy剁多重承
+## mixin、extend、proxy多重继承
 
 mixin是一种实现多重继承的方式，允许向一个类里面注入一些代码，使得一个类的功能能够“混入”另一个类
