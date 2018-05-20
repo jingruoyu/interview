@@ -102,7 +102,7 @@ JSX会移除空行和开始与结尾处的空格，字符串内部的换行会�
 	  <MySecondComponent />
 	</MyContainer>
 
-**一个React组件只能返回一个元素**
+**一个React组件可以通过数组的形式返回多个元素**
 
 #### javascript表达式
 
