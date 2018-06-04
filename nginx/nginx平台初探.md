@@ -1,8 +1,6 @@
-# [nginx](http://tengine.taobao.org/book/index.html)
-
 ## 初探nginx
 
-特点：高性能、多进程，异步非阻塞
+特点：高性能，高并发，多进程，异步非阻塞
 
 * 进程：系统进行资源分配和调度的一个独立单位，**各进程互相独立**
 * 线程：进程下一个能够独立运行的独立单位，同一进程下的所有线程共享进程拥有的全部资源，**线程可以创建和撤销另一个线程**
@@ -83,8 +81,8 @@ nginx的free_connections中保存所有空闲的ngx_connection_t，每获取一�
 
 **nginx最大连接数**
 
-* 普通情况下nginx最大连接数为worker_connections * worker_processes
-* 反向代理情况下最大连接数为worker_connections * worker_processes/2
+* 普通情况下nginx最大连接数为worker_connections ` worker_processes `
+* 反向代理情况下最大连接数为worker_connections ` worker_processes/2 `
 
 	因为每个并发会占用两个连接，分别问与客户端的连接和与后端的连接
 
