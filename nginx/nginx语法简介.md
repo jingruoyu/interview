@@ -1,4 +1,4 @@
-# nginx的简单使用（https://moonbingbing.gitbooks.io/openresty-best-practices/content/ngx/nginx_brief.html）
+# [nginx的简单使用](https://moonbingbing.gitbooks.io/openresty-best-practices/content/ngx/nginx_brief.html)
 
 ## nginx下载安装
 
@@ -80,5 +80,85 @@ location / | 通用匹配，任何未匹配到其它location的请求都会匹�
 			    proxy_pass http://tomcat:8080/
 			}
 
+### rewrite 语法
 
+用于判断的表达式
 
+* -f 和 !-f 用来判断是否存在文件
+* -d 和 !-d 用来判断是否存在目录
+* -e 和 !-e 用来判断是否存在文件或目录
+* -x 和 !-x 用来判断文件是否可执行
+
+nginx中部分全局变量
+
+```
+例：http://localhost:88/test1/test2/test.php?k=v
+$host：localhost
+$server_port：88
+$request_uri：/test1/test2/test.php?k=v
+$document_uri：/test1/test2/test.php
+$document_root：D:\nginx/html
+$request_filename：D:\nginx/html/test1/test2/test.php
+```
+
+## 避免使用if
+
+某些情况下使用if指令会出现错误，发生不可预期的行为。但是相同条件下if的处理是一致的
+
+location区块中if指令下100%安全的指令有：`return`,`rewrite`,`last`
+
+错误原因：
+
+> if 指令是 rewrite 模块中的一部分, 是实时生效的指令。另一方面来说, Nginx 配置大体上是陈述式的。在某些时候用户出于特殊是需求的尝试, 会在 if 里写入一些非 rewrite 指令, 这直接导致了我们现处的情况。
+
+### if的替换
+
+使用 try_files 如果他适合你的需求。在其他的情况下使用 return … 或者 rewrite … last。还有一些情况可能要把 if 移动到 server 区块下(只有当其他的 rewrite 模块指令也允许放在的地方才是安全的)。
+
+	location / {
+	    error_page 418 = @other;
+	    recursive_error_pages on;
+
+	    if ($something) {
+	        return 418;
+	    }
+
+	    # some configuration
+	    # ...
+	}
+
+## 静态文件服务
+
+配置cache、gzip等
+
+### 文件缓存
+
+在浏览器和应用服务器之间，存在多种潜在缓存，如：客户端浏览器缓存、中间缓存、内容分发网络（CDN）和服务器上的负载平衡和反向代理，可以提高响应性能，并更有效率的使用应用服务器
+
+### 配置基础缓存
+
+* proxy_cache_path：设置缓存路径和配置，levels、keys_zone、max_size、inactive、use_temp_path等
+* proxy_cache：启用缓存，可以在location中针对具体路径进行缓存，也可以在server中针对所有未指定自身缓存的服务进行缓存
+
+### nginx使用缓存处理服务器错误
+
+当原始服务器宕机或繁忙时，nginx可以将内存中的陈旧内容，提供容错能力，保证在服务器故障或流量峰值的情况下的正常运行
+
+具体配置：
+
+	location / {
+	    ...
+	    proxy_cache_use_stale error timeout http_500 http_502 http_503 http_504;
+	}
+
+上面的例子中，当服务器返回error、timeout以及其他5xx错误，就会将缓存中请求文件的旧版本发送给客户端
+
+### 缓存的其他配置项
+
+* proxy_cache_revalidate 指示 Nginx 在刷新来自服务器的内容时使用 GET 请求
+* proxy_cache_min_uses 该指令设置同一链接请求达到几次即被缓存，默认值为 1
+* proxy_cache_lock 指示当多个客户端请求一个缓存中不存在的文件（或称之为一个 MISS），只有这些请求中的第一个被允许发送至服务器
+
+## 日志
+
+* access_log：访问日志
