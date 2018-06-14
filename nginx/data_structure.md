@@ -1,10 +1,10 @@
-# 基本数据结构
+## 基本数据结构
 
 nginx中为了追求高效，实现了很多颇具特色的数据结构。
 
-## ngx_str_t
+### ngx_str_t
 
-### 带长度的字符串结构
+#### 带长度的字符串结构
 
 	typedef struct {
 	    size_t      len;
@@ -45,7 +45,7 @@ nginx字符串操作API：
 
 * ngx_str_set(str, text)
 
-		#define ngx_str_set(str, text)                                               
+		#define ngx_str_set(str, text)
 		    (str)->len = sizeof(text) - 1; (str)->data = (u_char *) text
 
 	设置nginx字符串str为text，text为常量字符串
@@ -104,7 +104,7 @@ nginx字符串操作API：
 	char buffer[1024];
 	ngx_snprintf(buffer, 1024, "%V", &str);    // 注意，str取地址
 
-## `ngx_pool_t`
+### `ngx_pool_t`
 
 ngx_pool_t数据结构提供一种资源管理机制，帮助管理一系列的资源，如内存、文件等，使得对这些资源的使用和释放统一进行，避免资源的错误释放
 
@@ -165,7 +165,7 @@ cleanup管理一个链表，其中每一项均为一个特殊的需要释放的�
 
 	该函数释放pool中所有大块内存链表上的内存，小块内存链上的内存块都修改为可用。但是不会去处理cleanup链表上的项目
 
-## `ngx_array_t`
+### `ngx_array_t`
 
 ngx_array_t为nginx中数组结构，大块连续内存，内部除了存储数据的内存外还包括一些其他相关描述信息
 
@@ -215,3 +215,45 @@ ngx_array_t为nginx中数组结构，大块连续内存，内部除了存储数�
 	* 如果一个数组对象是被分配在栈上的，那么就需要调用此函数，进行初始化的工作以后，才可以使用
 
 **由于使用ngx_palloc分配内存，数组在扩容时，旧的内存不会被释放，会造成内存的浪费**
+
+### `ngx_hash_t`
+
+`ngx_hash_t`实现nginx自己的hash表，使用开链法解决冲突
+
+`ngx_hash_t`实现特点：
+
+* 不可以插入或者删除元素，只能进行一次初始化
+* `ngx_hash_t`中开链法的实现是开了一段连续的存储空间中，初始化时会进行预计算，节省内存使用
+
+初始化：
+
+	ngx_int_t ngx_hash_init(ngx_hash_init_t *hinit, ngx_hash_key_t *names,
+	ngx_uint_t nelts);
+
+存储hash表key的数组结构：
+
+	typedef struct {
+	    ngx_str_t         key;
+	    ngx_uint_t        key_hash;
+	    void             *value;
+	} ngx_hash_key_t;
+
+操作函数：
+
+* `void *ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len);`
+
+	在hash里面查找key对应的value。实际上这里的key是对真正的key（也就是name）计算出的hash值。len是name的长度。查找成功返回指向value的指针，否则返回NULL
+
+### 其他数据结构
+
+* ngx_hash_wildcard_t：处理带有通配符的域名匹配问题，可以匹配通配符在前或者在后的key
+* ngx_hash_combined_t：组合型hash表，包含普通hash表、前向通配符hash表与后向通配符hash表
+* ngx_hash_keys_arrays_t：处理hash表的key值，便于构建hash表
+* ngx_chain_t：nginx的filter模块在处理从别的filter模块或者是handler模块传递过来的数据（实际上就是需要发送给客户端的http response）。这个传递过来的数据是以一个链表的形式(ngx_chain_t)
+* ngx_buf_t：ngx_chain_t链表的每个节点的实际数据
+* ngx_list_t：list数据结构
+
+	特殊在于每个节点均为一个固定大小的数组。添加元素时，会在最尾部的节点的数组上添加元素。如果这个节点的数组存满了，就新增一个新的节点到list里面去
+
+* ngx_queue_t：双向链表
+
