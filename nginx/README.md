@@ -2,4 +2,6 @@
 
 [Nginx中文文档](http://www.nginx.cn/doc/)
 
+[NGINX官方文档](http://nginx.org/en/docs/)
+
 [Nginx语法简介](https://moonbingbing.gitbooks.io/openresty-best-practices/content/ngx/nginx.html)

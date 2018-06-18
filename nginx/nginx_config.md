@@ -61,3 +61,27 @@ upstream | 实现**反向代理**的功能，将真正的请求转发到后端�
 load-balance | 负载均衡模块，实现特定的算法，在众多的后端服务器中，选择一个服务器出来作为某个请求的转发服务器
 
 ## nginx请求处理
+
+nginx使用多进程模型对外提供服务，一个master进程和多个woker进程，master进程负责管理nginx本身和woker进程
+
+所有的业务逻辑均在woker进程中处理，woker进程中有个无限循环函数`ngx_worker_process_cycle()`，不断处理接收到的请求并进行处理，直到nginx服务终止
+
+`ngx_worker_process_cycle()`处理流程：
+
+* 操作系统提供的机制（例如epoll, kqueue等）产生相关的事件
+* 接收和处理这些事件，如是接受到数据，则产生更高层的request对象
+* 处理request的header和body
+* 产生响应，并发送回客户端
+* 完成request的处理
+* 重新初始化定时器及其他事件
+
+### 请求的处理流程
+
+HTTP Request的处理过程：
+
+* 初始化HTTP Request，读取来自客户端的数据，生成Request对象，其中包含请求的所有信息
+* 处理请求头
+* 处理请求体
+* 如果有的话，调用本次请求想关联的handler
+* 依次调用各parse handler进行处理
+
