@@ -8,7 +8,7 @@
 
 默认为off，设置FreeBSD和linux下是否可以使用异步文件I/O
 
-当同时在linux上使用AIO和sendfile时，AIO用于文件大小小于或等于directio指令指定的大小的情况，sendfile用于较小的文件或者directio指令被禁用的情况
+当同时在linux上使用AIO和sendfile时，AIO用于文件大小大于或等于directio指令指定的大小的情况，sendfile用于较小的文件或者directio指令被禁用的情况
 
 	location /video/ {
 	    sendfile       on;
@@ -84,7 +84,111 @@ body读取超时设置，默认值60s。只有请求体需要被1次以上读取
 
 header缓冲区大小，默认值1k
 
-当请求头过大超出缓冲，比如包含大量cookie，
+当请求头过大超出缓冲区，比如包含大量cookie，将会根据`large_client_header_buffers`分配更大的buffer区域
+
+## `client_header_timeout time`
+
+读取请求头延迟，默认60s。如果客户端没有在指定的时间内发送完整的请求头，nginx会返回requests time out 408
+
+## `client_max_body_size size`
+
+设置服务端最大允许请求体，默认为1M，在请求头的content-length字段中会标明当次请求的请求体大小。
+
+如果请求体大小超过最大允许值，将会返回413 (Request Entity Too Large)错误，但是**浏览器不知道如何正确显示413错误**
+
+将size大小设为0后，将禁用请求body大小检查
+
+## `connection_pool_size size`
+
+精准控制每一个connection的内存分配，一般不使用，默认为256或512bytes
+
+## `default_type mime-type`
+
+设置response的默认mime-type，默认值为text-plain
+
+## `directio [size|off]`
+
+指定sendfile指令可以使用的阈值，当文件体积小于directio指定的大小时，可以使用sendfile指令，默认为off
+
+直接I/O是文件系统的一个功能，其从应用程序到磁盘直接读取和写入，从而绕过所有操作系统缓存。 这使得更好地利用CPU周期和提高缓存效率。这样的数据不需要在任何高速缓存中，并且可以在需要时加载。 它可以用于提供大文件
+
+## `directio_alignment size`
+
+用于设置directio的块大小，默认值为512，在XFS文件系统下，应该增加到4K
+
+## `disable_symlinks off | on | if_not_owner [from=part]`
+
+处理文件路径中的特殊符号
+
+* off：对文件路径中的特殊符号不做处理与检查
+* on：如果文件路径中有特殊符号，则拒绝访问
+* if_not_owner：
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
+
+## ` `
 
 ## ` `
 
