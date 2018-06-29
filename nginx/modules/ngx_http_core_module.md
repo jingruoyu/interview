@@ -116,154 +116,101 @@ header缓冲区大小，默认值1k
 
 用于设置directio的块大小，默认值为512，在XFS文件系统下，应该增加到4K
 
-## `disable_symlinks off | on | if_not_owner [from=part]`
+## `disable_symlinks`
+
+语法：
+
+* `disable_symlinks off;`
+* `	disable_symlinks on | if_not_owner [from=part]`
 
 处理文件路径中的特殊符号
 
 * off：对文件路径中的特殊符号不做处理与检查
 * on：如果文件路径中有特殊符号，则拒绝访问
-* if_not_owner：
+* if_not_owner：如果文件路径中任何组成部分中含有符号链接，且符号链接和链接目标的所有者不同，拒绝访问该文件
+* from=part：当nginx进行符号链接检查时(参数on和参数if_not_owner)，路径中所有部分默认都会被检查。 而使用from=part参数可以避免对路径开始部分进行符号链接检查，而只检查后面的部分路径。 如果某路径不是以指定值开始，整个路径将被检查，就如同没有指定这个参数一样。 如果某路径与指定值完全匹配，将不做检查。 这个参数的值可以包含变量
 
-## ` `
+命令使用：`disable_symlinks on from=$document_root;`
 
-## ` `
+## `error_page code ... [=[response]] uri`
 
-## ` `
+指定特定错误情况下显式返回的URI，可以使用response参数改变响应状态码。当前上下文中没有error_page时，从父级继承，URI中可以包含变量
 
-## ` `
+	error_page 404 =200 /empty.gif;
+	error_page 500 502 503 504 /50x.html;
 
-## ` `
+当URI被发送到另一个server服务上时，即error_page后面不是一个静态内容，使用单独的等号可以将server返回的状态码返回给用户
 
-## ` `
+	error_page 404 = /404.php;
 
-## ` `
+可以使用error_page进行**重定向**
 
-## ` `
+	error_page 403      http://example.com/forbidden.html;
+	error_page 404 =301 http://example.com/notfound.html;
 
-## ` `
+如果是在内部进行跳转无需改变URI，可以将错误处理转到一个命名路径，如下式，转到fallback，在fallback中再进行相应处理。此种情况下，如果处理uri产生了错误，那么nginx将最后一次出错的HTTP响应状态码返回给客户端。
 
-## ` `
+	location / {
+	    error_page 404 = @fallback;
+	}
 
-## ` `
+	location @fallback {
+	    proxy_pass http://backend;
+	}
 
-## ` `
+## `etag on | off`
 
-## ` `
+默认为on，作用为设置是否针对静态资源启用HTTP响应头中的etag
 
-## ` `
+## `http {...}`
 
-## ` `
+为http服务器提供配置上下文
 
-## ` `
+## `if_modified_since off | exact | before`
 
-## ` `
+默认为exact，指定响应的修改时间与请求头中`If-Modified-Since`的比较方法
 
-## ` `
+* off：忽略`if_modified_since`请求头
+* exact：精确匹配
+* before：响应的修改时间小于等于`if_modified_since`请求头指定的时间
 
-## ` `
+## `ignore_invalid_headers on | off`
 
-## ` `
+控制是否忽略非法的请求头字段名。 合法的名字是由英文字母、数字和连字符组成，当然也可以包含下划线。默认值为on
 
-## ` `
+可以在server配置层定义一次，对监听在相同地址和端口的所有虚拟主机都生效
 
-## ` `
+## `internal`
 
-## ` `
+location中使用，指定一个路径是否只能用于内部访问，外部访问将收到404错误
 
-## ` `
+内部请求包括：
 
-## ` `
+* 由error_page、index、random_index和try_files指令引起的重定向请求
+* 由后端服务器返回的`X-Accel-Redirect`响应头引起的重定向请求
+* 由`ngx_http_ssi_module`模块 和`ngx_http_addition_module`模块 的`include virtual`指令产生的子请求
+* 用`rewrite`指令对请求进行修改
 
-## ` `
+使用示例：
 
-## ` `
+	error_page 404 /404.html;
 
-## ` `
+	location /404.html {
+	    internal;
+	}
 
-## ` `
+**nginx限制每个请求最多只能进行10次内部重定向**，防止配置错误引起请求出现问题。超过10后，nginx将返回500 (Internal Server Error)错误
 
-## ` `
+## `keepalive_disable none | browser ...`
 
-## ` `
+针对行为异常的浏览器关闭长连接功能，browser参数指定哪些浏览器会受到影响
 
-## ` `
+* msie6表示在遇到POST请求时，关闭与老版MSIE浏览器建立长连接
+* safari表示在遇到Mac OS X和类Mac OS X操作系统下的Safari浏览器和类Safari浏览器时，不与浏览器建立长连接
+* none表示为所有浏览器开启长连接功能
 
-## ` `
+## `keepalive_requests number`
 
-## ` `
+通过一个长连接可以处理的最大请求数，请求数超过此值，长连接将会关闭
 
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
-
-## ` `
+之后不在抄书了。。。
