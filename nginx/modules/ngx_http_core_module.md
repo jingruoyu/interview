@@ -43,7 +43,7 @@
 
 当请求`/i/top.gif`时，会匹配到当前的location中，根据alias配置发送`/data/w3/images/top.gif`文件
 
-alias在使用正则匹配时，location后uri中捕捉到要匹配的内容后，并在指定的alias规则内容处使用
+alias在使用正则匹配时，location后uri中捕捉到要匹配的内容后，并在指定的alias规则内容处使用，以组成一个完整的文件路径
 
 	location ~ ^/users/(.+\.(?:gif|jpe?g|png))$ {
 	    alias /data/w3/images/$1;
@@ -213,4 +213,237 @@ location中使用，指定一个路径是否只能用于内部访问，外部访
 
 通过一个长连接可以处理的最大请求数，请求数超过此值，长连接将会关闭
 
-之后不在抄书了。。。
+## `keepalive_timeout timeout [header_timeout]`
+
+默认值75s，第一份参数设置客户端的长连接在服务端保持的最长时间，第二份参数可选，设置`Keep-Alive: timeout=time`响应头的值，可以给两个参数设置不同的值
+
+`Keep-Alive: timeout=time`响应头可以被火狐和chrome设备与处理，MSIE大约会在60s后关闭长连接
+
+##之后不再详细记录##
+
+* `large_client_header_buffers number size`：设置读取客户端超大请求的缓冲最大数量和每块缓冲的容量。
+
+	* 当请求行的长度超过一块缓冲容量是，nginx返回414错误
+	* 当请求头长度超过一块缓冲容量时，nginx按返回400错误
+
+	默认值number为4，size为8k。长连接情况下处理完请求后，也会释放这些缓存
+
+* `limit_except method ... { ... }`：location中使用，限制可以对该路径进行请求的HTTP方法，当指定method为GET时，会自动添加HEAD方法，其他HTTP方法的请求会由`ngx_http_access_module`模块和`ngx_http_auth_basic_module`模块的指令来限制访问
+
+	使用实例：
+
+		limit_except GET {
+		    allow 192.168.1.0/32;
+		    deny  all;
+		}
+
+* `limit_rate rate`：限制每个连接向客户端传送响应的速率限制，单位为比特每秒，设置为0时取消限速
+* `limit_rate_after size`：传输量超过size大小时将，超出部分限速传送
+* `lingering_close off | on | always`：控制nginx如何关闭客户端
+
+	* on：nginx在完成关闭连接前等待和 处理客户端发来的额外数据。但只有在预测客户端可能发送更多数据的情况才会做此处理
+	* always：nginx无条件等待和处理客户端的额外数据
+	* off：nginx立即关闭连接，不等待客户端传送的额外数据。此种处理方式会破坏协议，正常情况不应该使用
+
+* `lingering_time time`：在lingering_close指令生效时，设置nginx处理（**读取但忽略**）客户端额外数据的最长时间，超过这段时间后，nginx将关闭连接
+* `lingering_timeout time`：在lingering_close指令生效时，定义nginx等待客户端数据额外数据最长时间
+
+	* 在这段时间内，如果nginx没有接收到数据，将会关闭连接
+	* 如果nginx接收到数据，将会忽略它，然后继续等待
+
+	在等待————接收————忽略的循环中重复，但是总时间不会超过`lingering_time`
+
+* `listen`：设置nginx监听地址，用于server上下文中
+
+	```
+		listen address[:port] [default_server] [setfib=number] [backlog=number] [rcvbuf=size] [sndbuf=size] [accept_filter=filter] [deferred] [bind] [ipv6only=on|off] [ssl] [so_keepalive=on|off|[keepidle]:[keepintvl]:[keepcnt]];
+		listen port [default_server] [setfib=number] [backlog=number] [rcvbuf=size] [sndbuf=size] [accept_filter=filter] [deferred] [bind] [ipv6only=on|off] [ssl] [so_keepalive=on|off|[keepidle]:[keepintvl]:[keepcnt]];
+		listen unix:path [default_server] [backlog=number] [rcvbuf=size] [sndbuf=size] [accept_filter=filter] [deferred] [bind] [ssl] [so_keepalive=on|off|[keepidle]:[keepintvl]:[keepcnt]];
+	```
+
+	* 针对IP协议，监听address和port
+
+		```
+		listen 127.0.0.1:8000;
+		listen 127.0.0.1;
+		listen 8000;
+		listen *:8000;
+		listen localhost:8000;
+		```
+
+		IPv6地址使用方括号表示
+
+		```
+		listen [::]:8000;
+		listen [fe80::1];
+		```
+
+		只定义address情况下，nginx默认使用80端口
+
+	* 针对Unix域套接字协议，监听path，使用`unix:`前缀
+
+		```
+		listen unix:/var/run/nginx.sock;
+		```
+
+	**default_server**：携带default_server参数的server会被指定address:port的默认虚拟主机，如果任何listen都没有指定，则将第一个监听address:port的server作为该地址的虚拟主机
+
+	其他参数配置详见[listen](https://tengine.taobao.org/nginx_docs/cn/docs/http/ngx_http_core_module.html#listen)
+
+* `location`
+
+	```
+		location [ = | ~ | ~* | ^~ ] uri { ... } //匹配路径，路径可以嵌套
+		location @name { ... } // 定义命名路径，不能嵌套
+	```
+
+	路径匹配在URI规范化后进行，nginx会将URI中的编码字符进行解码，解析其中的相对路径，另外可能会对相邻的两个或多个斜线压缩为一个斜线
+
+	location匹配规则
+
+	模式 | 含义
+	--- | ---
+	`location = /uri` | = 表示精确匹配，只有完全匹配上才能生效
+	`location ^~ /uri` | ^~ 开头对URL路径进行前缀匹配，并且在正则之前，前缀匹配不对url进行编码。
+	`location ~ pattern` | 开头表示区分大小写的正则匹配
+	`location ~* pattern` | 开头表示不区分大小写的正则匹配
+	`location /uri` | 不带任何修饰符，也表示前缀匹配，但是在正则匹配之后
+	`location /` | 通用匹配，任何未匹配到其它location的请求都会匹配到，相当于switch中的default
+
+	多个location匹配顺序：
+
+	* 精确匹配
+	* 前缀匹配，前缀匹配时进行贪婪匹配，按照最大匹配原则进行
+	* 按规则书写顺序正则匹配
+	* 匹配不带任何修饰符的前缀匹配
+	* 通用匹配
+
+	当匹配成功后，停止匹配，按照当前规则进行处理:fu:
+
+* `log_not_found on | off`：开启或者关闭error_log中记录文件不存在的错误，默认为on
+* `log_subrequest on | off`：开启或者关闭access_log中记录子请求的访问日志，默认off
+* `max_ranges number`：限制HTTP请求头数量，如果数量超过限制，超出部分按照未携带处理，，默认不限制
+* `merge_slashes on | off`：开启或者关闭将URI中相邻多个斜线合并成一个的功能，默认开启
+
+	压缩URI对于正确的路径匹配十分重要，处于安全方面以及正确使用的考虑，建议不要关闭压缩
+
+* `msie_padding on | off`：在响应状态码大于等于400时，在响应正文中添加一段注释，使响应正文达到512字节。 本指令可以为MSIE客户端开启或关闭这个功能。
+* `msie_refresh on | off`：为MSIE客户端开启或者关闭用页面刷新取代页面重定向的功能。默认关闭
+* `open_file_cache`：配置文件缓存功能
+
+	取值：
+
+	* off：关闭缓存
+	* max：缓存中元素最大数量，超过限制后使用最近最少使用算法删除元素
+	* inactive：设置超时，指定时间内文件未被访问将会从缓存中删除，默认60s
+
+	可以缓存以下数据：
+
+	* 打开文件的描述符、大小和修改时间
+	* 目录查找结果
+	* 文件查找时的错误结果，需要使用`open_file_cache_errors`指令单独打开
+
+* `open_file_cache_errors on | off`：开启或者关闭缓存文件查找的错误结果，默认off
+* `open_file_cache_min_uses number`：配合`open_file_cache`中的inactive参数使用，指定在此段时间内文件应该被访问的最小次数，默认为1次
+* `open_file_cache_valid time`：检查`open_file_cache`中缓存文件的间隔，默认为60s
+* `port_in_redirect on | off`：nginx发起重定向时是否要指定端口，重定向时主机名使用`server_name_in_redirect`指定
+* `postpone_output size`：向客户端发送数据时会延迟发送，当至少有size字节的数据时才会开始发送。设为0将关闭延迟发送功能
+* `read_ahead size`：设置内核参数，控制文件预读数量
+* `recursive_error_pages on | off`：允许或者禁止error page指令进行多次重定向。如果禁止，则当重定向的错误页面出现问题，nginx将会直接输出默认错误页面
+* `request_pool_size size`：细调每个请求的内存分配，一般不用
+* `reset_timedout_connection`：开启或关闭重置超时连接功能
+
+	重置连接功能执行流程为，关闭套接字以前，设置SO_LINGER选项的超时值为0， 那么当关闭套接字时，nginx向客户端发送TCP RST，并且释放此套接字占用的所有内存。 这样可以避免某个已关闭的套接字长时间处于FIN_WAIT1状态，并占用内存缓冲区
+
+	**超时的长连接依然是正常关闭的**
+
+* `resolver address ... [valid=time]`：将后端服务器的域名解析成ip地址
+
+	```
+		resolver 127.0.0.1 [::1]:5353 valid=30s;
+	```
+
+	不指定端口号nginx将使用53端口，以轮询的方式发送到多台域名服务器
+
+	nginx会缓存域名解析结果，默认缓存时间是TTL字段值，可以通过valid参数覆盖
+
+* `resolver_timeout time`：设置域名解析超时，默认30s
+* `root path`：设置请求根目录
+
+	path路径可以包含除`$document_root`和`$realpath_root`以外的变量
+
+* `satisfy all | any`：访问权限控制，默认为all
+
+	nginx进行访问限制的有ngx_http_access_module模块和 ngx_http_auth_basic_module模块
+
+	* all：其所有限制条件都授权访问时才允许请求访问
+	* any：任意条件允许访问即可允许请求访问
+
+## send系列
+
+* `send_lowat size`：
+
+	size取值为0时nginx尝试最小化向客户端发送数据次数，指令在linux、windows、Safari上无效
+
+* `	send_timeout time;`：设置向客户端传输响应超时时间
+
+	超时时间针对两次相邻写操作的时间间隔，如果客户端在这段时间内没有受到数据，将会关闭连接
+
+* `sendfile on | off`：是否开启sendFile()调用
+* `sendfile_max_chunk size`：默认为0
+
+	设置为非0值时，可以限制在一次sendfile()调用时传输的数据量。 如果不进行限制，一个快速的连接可能会霸占整个worker进程的所有资源
+
+## server系列
+
+* `server {...}`
+
+	内部包含一个虚拟主机配置，nginx没有明显分隔IP-based和name-baesd两种类型的虚拟主机
+
+	* listen指令描述虚拟主机接受连接的地址和端口
+	* server_name指令列出虚拟主机的所有主机名，即监听的主机名
+
+* `server_name name ...`：设置虚拟主机名，默认值为""，第一个name是首要主机名
+
+	name可以使用通配符\*，正则表达式等，使用正则表达式时需要在前面加上`~`，使用正则匹配组时可以在后面其他指令中继续使用匹配组
+
+	nginx允许使用空主机名，使得nginx可以处理没有HOST请求头的请求，而不是使用ip+port的默认虚拟主机进行处理
+
+	server_name匹配优先级：
+
+	* 精确匹配，确切的名字
+	* 最长的以`*`起始的通配符名字
+	* 最长的以`*`结束的通配符名字
+	* 第一个匹配的正则表达式名字（按在配置文件中出现的顺序）
+
+* `server_name_in_redirect on | off`：是否开启将指定的首要主机名用于发起重定向功能，默认关闭
+
+	关闭时，nginx将使用Host请求头中的名字，如果没有请求头，使用虚拟主机所在的IP地址
+
+* `server_names_hash_bucket_size size`：设置主机名哈希表大小，默认值取决于处理器的缓存大小
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``
+* ``

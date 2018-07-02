@@ -6,7 +6,7 @@
 
 * react.js，React核心库
 * react-dom.js，提供DOM相关操作
-* brower.js，将JSX语法转化为JavaScript也发，使用JSX的的地方script标签下type为"text/babel"
+* brower.js，将JSX语法转化为JavaScript语法，使用JSX的的地方script标签下type为"text/babel"
 
 ## render函数
 
@@ -27,16 +27,16 @@ ReactDOM.render函数将模板转化为HTML，插入到指定DOM节点中
 * 遇到代码块（即大括号）以JavaScript规则解析
 
 		var names = ['Alice', 'Emily', 'Kate'];
-	
+
 		ReactDOM.render(
-		  <div>
-		  {
-		    names.map(function (name) {
-		      return <div>Hello, {name}!</div>
-		    })
-		  }
-		  </div>,
-		  document.getElementById('example')
+		    <div>
+		    {
+		        names.map(function (name) {
+		            return <div>Hello, {name}!</div>
+		        })
+		    }
+		    </div>,
+		    document.getElementById('example')
 		);
 
 * 直接在模板中插入JavaScript变量，如果是数组，则展开数组
@@ -44,12 +44,12 @@ ReactDOM.render函数将模板转化为HTML，插入到指定DOM节点中
 	**此处为展开数组，并不是调用数组的toString方法**
 
 		var arr = [
-		  <h1>Hello world!</h1>,
-		  <h2>React is awesome</h2>,
+		    <h1>Hello world!</h1>,
+		    <h2>React is awesome</h2>,
 		];
 		ReactDOM.render(
-		  <div>{arr}</div>,
-		  document.getElementById('example')
+		    <div>{arr}</div>,
+		    document.getElementById('example')
 		);
 
 React DOM 在渲染之前默认会 过滤 所有传入的值。它可以确保你的应用不会被注入攻击，防止XSS攻击。
@@ -65,7 +65,7 @@ React.createClass方法用于生成组件类
 	    return <h1>Hello {this.props.name}</h1>;
 	  }
 	});
-	
+
 	ReactDOM.render(
 	  <HelloMessage name="John" />,
 	  document.getElementById('example')
@@ -154,7 +154,7 @@ getInitialState 函数规定函数内部初始状态，函数返回一个对象�
 
 3. componentDidMount:组件挂载后调用
 
-4. componentWillUpdate(object nextProps, object nextState) 
+4. componentWillUpdate(object nextProps, object nextState)
 
 5. componentDidUpdate(object prevProps, object prevState)
 
@@ -278,7 +278,7 @@ javascript中条件运算可以使用
 
 react组件内部状态只能使用setState函数进行，故在view中状态改变时，需要进行手动的viewmodel操作，此处即为受控组件的意义
 
-	//输入框输入时触发事件更改组件状态	
+	//输入框输入时触发事件更改组件状态
 	<input type="text" value={this.state.value} onChange={this.handleChange} />
 
 	//手动完成状态更改，函数中使用event.target.value获取输入值
@@ -300,7 +300,7 @@ react组件内部状态只能使用setState函数进行，故在view中状态改
 	    const target = event.target;
 	    const value = target.type === 'checkbox' ? target.checked : target.value;
 	    const name = target.name;
-	
+
 	    this.setState({
 	      [name]: value
 	    });
