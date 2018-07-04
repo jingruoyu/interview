@@ -55,48 +55,50 @@ alias在使用正则匹配时，location后uri中捕捉到要匹配的内容后�
 
 允许在HTTP / 1.1中禁用分块传输编码。 尽管有标准要求，但当前使用软件无法支持分块编码时，它可能会派上用场
 
-## `client_body_buffer_size size`
+## client相关
 
-设置默认的请求body buffer大小，默认值为8k|16k。默认情况下大小为两个memory page。一个memory page大小与操作系统关联，32位为4k，64k为8k
+* `client_body_buffer_size size`
 
-当body大小超出限制时，会将body整体或部分放入一个临时文件中。
+    设置默认的请求body buffer大小，默认值为8k|16k。默认情况下大小为两个memory page。一个memory page大小与操作系统关联，32位为4k，64k为8k
 
-## `client_body_in_file_only on | clean | off`
+    当body大小超出限制时，会将body整体或部分放入一个临时文件中。
 
-设置请求body是否需要保存到一个文件中，一般用于debug模式，默认为off
+* `client_body_in_file_only on | clean | off`
 
-* 取值为on时，请求结束后临时文件不删除
-* 取值为clean时，请求结束后删除临时文件
+    设置请求body是否需要保存到一个文件中，一般用于debug模式，默认为off
 
-## `client_body_in_single_buffer on | off`
+    * 取值为on时，请求结束后临时文件不删除
+    * 取值为clean时，请求结束后删除临时文件
 
-默认为off，指定是否将请求body放入一个缓冲区中
+* `client_body_in_single_buffer on | off`
 
-## `client_body_temp_path path [level1 [level2 [level3]]]`
+    默认为off，指定是否将请求body放入一个缓冲区中
 
-默认值为`client_body_temp`，指定存储body的临时文件目录
+* `client_body_temp_path path [level1 [level2 [level3]]]`
 
-## `client_body_timeout time`
+    默认值为`client_body_temp`，指定存储body的临时文件目录
 
-body读取超时设置，默认值60s。只有请求体需要被1次以上读取时，该超时时间才会被设置。且如果这个时间后用户什么都没发，nginx会返回requests time out 408
+* `client_body_timeout time`
 
-## `client_header_buffer_size size`
+    body读取超时设置，默认值60s。只有请求体需要被1次以上读取时，该超时时间才会被设置。且如果这个时间后用户什么都没发，nginx会返回requests time out 408
 
-header缓冲区大小，默认值1k
+* `client_header_buffer_size size`
 
-当请求头过大超出缓冲区，比如包含大量cookie，将会根据`large_client_header_buffers`分配更大的buffer区域
+    header缓冲区大小，默认值1k
 
-## `client_header_timeout time`
+    当请求头过大超出缓冲区，比如包含大量cookie，将会根据`large_client_header_buffers`分配更大的buffer区域
 
-读取请求头延迟，默认60s。如果客户端没有在指定的时间内发送完整的请求头，nginx会返回requests time out 408
+* `client_header_timeout time`
 
-## `client_max_body_size size`
+    读取请求头延迟，默认60s。如果客户端没有在指定的时间内发送完整的请求头，nginx会返回requests time out 408
 
-设置服务端最大允许请求体，默认为1M，在请求头的content-length字段中会标明当次请求的请求体大小。
+* `client_max_body_size size`
 
-如果请求体大小超过最大允许值，将会返回413 (Request Entity Too Large)错误，但是**浏览器不知道如何正确显示413错误**
+    设置服务端最大允许请求体，默认为1M，在请求头的content-length字段中会标明当次请求的请求体大小。
 
-将size大小设为0后，将禁用请求body大小检查
+    如果请求体大小超过最大允许值，将会返回413 (Request Entity Too Large)错误，但是**浏览器不知道如何正确显示413错误**
+
+    将size大小设为0后，将禁用请求body大小检查
 
 ## `connection_pool_size size`
 
@@ -512,3 +514,23 @@ $nginx_version | nginx版本号
 $pid | worker进程PID
 $query_string | 同$args
 $realpath_root | 根据root或者alias指令算出来的当前请求的绝对路径，其中的符号链接都会解析成真实的文件路径
+$remote_addr | 客户端IP地址
+$remote_port | 客户端端口
+$remote_user | 为基本用户认证提供的用户名
+$request | 完整的原始请求行
+$request_body | 请求正文
+$request_body_file | 请求正文的临时文件名
+$request_completion | 请求完成时返回OK，否则返回空字符串
+$request_filename | 基于root指令或alias指令，以及请求URI，得到的当前请求的文件路径
+$request_method | 请求方法
+$request_time | 请求处理时间，单位为秒，从接收到客户端的第一个字节开始计算
+$request_uri | 完整的原始请求行，携带参数
+$scheme | 请求的协议类型，HTTP或者https
+$sent_http_name | **任意的响应头字段的值。 变量名的后半部为转化为小写并且用下划线替代横线后的响应头名称**
+$server_addr | 接收请求的服务器地址
+$server_name | 接收请求的虚拟主机首要主机名
+$server_port | 接受请求的虚拟主机的端口。
+$server_protocol | 请求协议，通常为“HTTP/1.0”或“HTTP/1.1”。
+$status | 响应状态码。
+$tcpinfo_rtt, $tcpinfo_rttvar, $tcpinfo_snd_cwnd, $tcpinfo_rcv_space | 客户端TCP连接的信息，在支持套接字选项TCP_INFO的系统中可用。
+$uri | 当前请求规范化以后的URI。**变量$uri的值可能随请求的处理过程而改变**。 比如，当进行内部跳转时，或者使用默认页文件。
