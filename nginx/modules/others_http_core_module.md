@@ -40,6 +40,47 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
 
 ## 请求代理模块
 
+### 请求转发
+
+* `proxy_pass URL;`：设置后端服务器的协议和地址，还可以设置可选的URI用于定义本地路径和后端服务器的映射关系
+
+    协议可以使用http或者https，地址可以使用域名、IP地址加端口号或者Unix域套接字路径定义，其中可以使用变量。
+
+    如果一个域名被解析到多个地址，将采用轮换的方式使用，或者可以使用服务器组的形式定义地址（upstream负载均衡）
+
+    地址替换规则：
+
+    * 如果使用URI，将请求路径与配置路径的匹配部分替换为指令中定义的URI
+
+        ```
+        location /name/ {
+            proxy_pass http://127.0.0.1/remote/;
+        }
+        ```
+
+    * 如果不使用URI，传送到后端服务器的请求URI一般客户端发起的原始URI，如果nginx改变了请求URI，则传送的URI是nginx改变以后完整的规范化URI
+
+        ```
+        location /some/path/ {
+            proxy_pass http://127.0.0.1;
+        }
+        ```
+
+    一些情况下无法确定URI应该被替换的部分：
+
+    * 使用正则表达式定义路径，proxy_pass路径中不应该使用URI
+    * 需要代理的路径中，使用rewrite指令改变了URI并使用break参数，**之后使用proxy_pass将会被忽略**，改变后的URI将被发送给后端服务器
+
+        ```
+        location /name/ {
+            rewrite    /name/([^/]+) /users?name=$1 break;
+            proxy_pass http://127.0.0.1;
+        }
+        ```
+
+* ` `
+* ` `
+
 ### 缓存相关
 
 **`ngx_http_proxy_module`模块进行请求代理**
@@ -124,33 +165,86 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
 
 * `proxy_connect_timeout time`：设置与后端服务器建立连接的超时时间，一般不可能大于75秒
 
-### cookie相关
+### 响应头替换
 
-* `proxy_cookie_domain off`：设置“Set-Cookie”响应头中的domain属性的替换文本，默认为off
+* `proxy_cookie_domain`：设置“Set-Cookie”响应头中的domain属性的替换文本，默认为off
 
     ```
-    proxy_cookie_domain domain replacement;
+    proxy_cookie_domain srcdomain replacement;
     ```
 
-    如果后端服务器返回的“Set-Cookie”响应头含有属性中domain指定为指令中的domain，会将其替换为replacement。
+    如果后端服务器返回的“Set-Cookie”响应头属性中domain指定为指令中的srcdomain，匹配过程大小写不敏感会将其替换为replacement。
 
-    * 指令中可以使用变量或正则表达式
+    * 指令中可以使用变量或正则表达式，正则表达式使用`~`开始
     * 可以同时定义多条`proxy_cookie_domain`指令
     * **off参数可以取消当前配置级别的所有`proxy_cookie_domain`指令**
 
     ```
+    proxy_cookie_domain www.$host $host;
     proxy_cookie_domain localhost example.org;
     proxy_cookie_domain ~\.([a-z]+\.[a-z]+)$ $1;
     ```
 
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
+* `proxy_cookie_path`：设置“Set-Cookie”响应头中的path属性的替换文本，默认为off
+
+    ```
+    proxy_cookie_path path replacement
+    ```
+
+    替换掉后端服务器返回的“Set-Cookie”响应头path属性中的相应字符串，`proxy_cookie_path /two/ /`将`path=/two/some/uri/`替换为`/some/uri/`
+
+    * path和replacement中可以包含变量和正则表达式，大小写敏感的匹配使用`~`开始，大小写不敏感的匹配使用`~*`开始
+    * 可以同时定义多条`proxy_cookie_path`指令
+    * **off参数可以取消当前配置级别的所有`proxy_cookie_path`指令**
+
+* `proxy_redirect`：设置后端服务器“Location”响应头和“Refresh”响应头的替换文本
+
+    ```
+    proxy_redirect default; // 默认
+    proxy_redirect off;
+    proxy_redirect redirect replacement;
+    ```
+
+### http请求处理
+
+* `proxy_hide_header field`：设置隐藏的响应头，不发送给客户端
+
+    nginx默认不会将“Date”、“Server”、“X-Pad”，和“X-Accel-...”响应头发送给客户端，`proxy_hide_header`设置额外的响应头，也不会发送给客户端
+
+    **如果希望允许向客户端传递某些响应头，可以使用proxy_pass_header指令**
+
+* `proxy_ignore_headers field ...;`：不处理后端服务器返回的指定响应头
+
+    取值可以为如下响应头
+
+    * “X-Accel-Expires”，“Expires”，“Cache-Control”，和“Set-Cookie” 设置响应缓存的参数；
+    * “X-Accel-Redirect”执行到指定URI的内部跳转；
+    * “X-Accel-Limit-Rate”设置响应到客户端的传输速率限制；
+    * “X-Accel-Buffering”启动或者关闭响应缓冲；
+    * “X-Accel-Charset”设置响应所需的字符集
+
+* `proxy_pass_header field;`：允许将被屏蔽的后端服务器响应头到客户端
+
+* `proxy_http_version 1.0 | 1.1`：设置代理使用的HTTP版本，默认1.0
+* `proxy_ignore_client_abort on | off;`：设置当客户端在响应传输完成前关闭连接时，nginx是否关闭后端连接，默认off
+* `proxy_intercept_errors on | off`：当后端服务器的状态响应码大于400时，是否将响应直接发送给客户端，或者将响应转发给nginx的error_page进行处理
+* `proxy_max_temp_file_size size`：指定临时文件的最大容量，打开相应缓存后，当缓存区不够时，会将部分响应存储在临时文件中。，默认1024M
+
+    将取值设为0将禁止响应写入缓存文件
+
+* `proxy_next_upstream error | timeout | invalid_header | http_500 | http_502 | http_503 | http_504 | http_404 | off ...`
+
+    指定在何种情况下一个失败的请求应该被发送到下一台后端服务器，默认值为error和timeout
+
+    **只有在没有向客户端发送任何数据之前，请求转发到下一台服务器才可行**。如果传输响应到客户端是出错或者超市，此类错误不可能恢复
+
+* `proxy_read_timeout`：从后端服务器读取响应的超时，默认60s
+
+    此超时是指相邻两次读操作之间的最长时间间隔，而不是整个响应传输完成的最长时间。如果后端服务器在超时时间段内没有传输任何数据，连接将被关闭。
+
+
+
+
 * ` `
 * ` `
 * ` `
