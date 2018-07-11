@@ -78,6 +78,52 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
         }
         ```
 
+* `proxy_redirect`：设置后端服务器“Location”响应头和“Refresh”响应头的替换文本
+
+    ```
+    proxy_redirect default; // 默认
+    proxy_redirect off;
+    proxy_redirect redirect replacement;
+    ```
+
+    * replacement参数
+
+        ```
+        proxy_redirect http://localhost:8000/two/ http://frontend/one/;
+        proxy_redirect http://localhost:8000/two/ /;
+        ```
+
+        * 第一项将响应头中location字段的相应路径替换为replacement
+        * 第二项省略服务器名，将使用**代理服务器的主域名和端口号**进行替换，如果端口号是80，可以不加
+        * 可以使用正则表达式，在redirect中可以包含命名匹配组和位置匹配组，在replacement中可以进行引用
+
+        ```
+        proxy_redirect ~^(http://[^:]+):\d+(/.+)$ $1$2;
+        proxy_redirect ~*/user/([^/]+)/(.+)$      http://$1.example.com/$2;
+        ```
+
+        **使用proxy_redirect可以为相对地址的重定向添加域名**
+
+        ```
+        proxy_redirect / /;
+        ```
+
+    * default参数
+
+        default参数指定的默认替换使用了location和proxy_pass指令参数，当proxy_pass使用变量作为参数时，不允许本指令使用default参数
+
+    * off参数
+
+        off参数可以使所有相同配置级别的proxy_redirect指令失效
+
+    可以同时指定多个`proxy__redirect`指令
+
+    ```
+    proxy_redirect default;
+    proxy_redirect http://localhost:8000/  /;
+    proxy_redirect http://www.example.com/ /;
+    ```
+
 * ` `
 * ` `
 
@@ -163,8 +209,6 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
 
     这些响应头的处理过程可以使用proxy_ignore_headers指令忽略
 
-* `proxy_connect_timeout time`：设置与后端服务器建立连接的超时时间，一般不可能大于75秒
-
 ### 响应头替换
 
 * `proxy_cookie_domain`：设置“Set-Cookie”响应头中的domain属性的替换文本，默认为off
@@ -197,15 +241,11 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
     * 可以同时定义多条`proxy_cookie_path`指令
     * **off参数可以取消当前配置级别的所有`proxy_cookie_path`指令**
 
-* `proxy_redirect`：设置后端服务器“Location”响应头和“Refresh”响应头的替换文本
-
-    ```
-    proxy_redirect default; // 默认
-    proxy_redirect off;
-    proxy_redirect redirect replacement;
-    ```
-
 ### http请求处理
+
+* `proxy_set_header field value;`
+
+
 
 * `proxy_hide_header field`：设置隐藏的响应头，不发送给客户端
 
@@ -242,8 +282,11 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
 
     此超时是指相邻两次读操作之间的最长时间间隔，而不是整个响应传输完成的最长时间。如果后端服务器在超时时间段内没有传输任何数据，连接将被关闭。
 
+* `proxy_send_timeout time`：向后端服务器传输请求的超时，默认60s
 
+    超时是指相邻两次写操作之间的最长时间间隔，不是整个请求传输完成的最长时间。如果后端服务器在超时时间内没有接收到任何数据，连接将被关闭
 
+* `proxy_connect_timeout time`：设置与后端服务器建立连接的超时时间，一般不可能大于75秒
 
 * ` `
 * ` `
