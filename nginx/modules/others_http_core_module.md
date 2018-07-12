@@ -58,7 +58,7 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
         }
         ```
 
-    * 如果不使用URI，传送到后端服务器的请求URI一般客户端发起的原始URI，如果nginx改变了请求URI，则传送的URI是nginx改变以后完整的规范化URI
+    * 如果不使用URI，传送到后端服务器的请求URI一般是客户端发起的原始URI，如果nginx改变了请求URI，则传送的URI是nginx改变以后完整的规范化URI
 
         ```
         location /some/path/ {
@@ -123,9 +123,6 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
     proxy_redirect http://localhost:8000/  /;
     proxy_redirect http://www.example.com/ /;
     ```
-
-* ` `
-* ` `
 
 ### 缓存相关
 
@@ -243,9 +240,23 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
 
 ### http请求处理
 
-* `proxy_set_header field value;`
+* `proxy_set_header field value;`：允许重新定义或者添加发往后端服务器的请求头，如果将某一请求头设置为空字符串，则不会将其传递给后端服务器
 
+    默认值：
 
+    ```
+    proxy_set_header Host $proxy_host;
+    proxy_set_header Connection close;
+    ```
+
+    如果不想改变请求头中host的值，有两种做法
+
+    * 设置为$http_host变量，但是如果客户端请求头中不包含此值，那么传递到后端服务器的请求也不含这个头部
+    * 设置为$host变量，如果请求头包含Host则为Host字段的值，如果不包含则为虚拟机的主域名。可以将其与后端服务器的端口一起传送
+
+        ```
+        proxy_set_header Host       $host:$proxy_port;
+        ```
 
 * `proxy_hide_header field`：设置隐藏的响应头，不发送给客户端
 
@@ -268,9 +279,6 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
 * `proxy_http_version 1.0 | 1.1`：设置代理使用的HTTP版本，默认1.0
 * `proxy_ignore_client_abort on | off;`：设置当客户端在响应传输完成前关闭连接时，nginx是否关闭后端连接，默认off
 * `proxy_intercept_errors on | off`：当后端服务器的状态响应码大于400时，是否将响应直接发送给客户端，或者将响应转发给nginx的error_page进行处理
-* `proxy_max_temp_file_size size`：指定临时文件的最大容量，打开相应缓存后，当缓存区不够时，会将部分响应存储在临时文件中。，默认1024M
-
-    将取值设为0将禁止响应写入缓存文件
 
 * `proxy_next_upstream error | timeout | invalid_header | http_500 | http_502 | http_503 | http_504 | http_404 | off ...`
 
@@ -288,24 +296,72 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
 
 * `proxy_connect_timeout time`：设置与后端服务器建立连接的超时时间，一般不可能大于75秒
 
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
+* `proxy_ssl_session_reuse on | off;`：决定是否重用与后端服务器的SSL会话。如果日志中出现“SSL3_GET_FINISHED:digest check failed”错误，请尝试关闭会话重用。
+
+* `proxy_store on | off | string;`：设置将文件保存到磁盘功能，默认值为off
+
+    * on，nginx会将文件保存到alias或者root指令设置的路径中
+    * off，nginx关闭文件保存功能
+    * string，指定保存的路径和文件名，可以包含变量。如`proxy_store /data/www$original_uri;`
+
+    文件保存相关：
+
+    * 保存文件的修改时间根据请求头中的Last-Modified进行设置
+    * 响应均为先写入临时文件，如果存储位置和临时文件位于不同文件系统中，需要进行拷贝操作，如果是同一个文件系统，仅需重命名即可。
+
+    故推荐将保存文件的路径与proxy_temp_path设置的临时文件路径位于同一个文件系统中
+
+* `proxy_store_access users:permissions ...;`设置新创建文件的访问权限，默认值`user:rw`
+
+    可以设置user、group和all三种角色的权限，指定了任何group或者all的权限后，可以省略user的访问权限
+
+    ```
+    proxy_store_access group:rw all:r;
+    ```
+* `proxy_temp_path path [level1 [level2 [level3]]];`：定义从后端服务器接收的临时文件的存放路径，默认值为proxy_temp
+
+* `proxy_temp_file_write_size size;`：设置nginx每次写数据到临时文件的size(大小)限制，默认值为8k或者16k
+
+    默认值为`proxy_buffer_size`和`proxy_buffer`指定的每块缓冲区大小的两倍，最大值为`proxy_max_temp_file_size`
+
+* `proxy_max_temp_file_size size`：指定临时文件的最大容量，打开相应缓存后，当缓存区不够时，会将部分响应存储在临时文件中。，默认1024M
+
+    将取值设为0将禁止响应写入缓存文件
+
+### 内部变量
+
+模块的内部变量可以用于`proxy_set_header`中构造请求头
+
+**核心模块的变量可以全局访问**
+
+* `$proxy_host`：后端服务器的主机名和端口
+* `$proxy_port`：后端服务器端口
+* `$proxy_add_x_forwarded_for`：取值为将$remote_addr变量值添加在客户端“X-Forwarded-For”请求头对应值的后面，并以逗号分隔。
+
+    如果客户端请求未携带“X-Forwarded-For”请求头，$proxy_add_x_forwarded_for变量值将与$remote_addr变量相同
 
 ## ngx_http_rewrite_module模块
+
+* `break`：停止处理当前这一轮的ngx_http_rewrite_module指令集。
+* `if (condition) { ... }`：if指令会从上一层配置中继承配置
+
+    条件可以为下列情况：
+
+    * 变量名：如果变量值为空或者是以“0”开始的字符串，则条件为假
+    * 使用“=”和“!=”运算符比较变量和字符串
+    * 使用“~”（大小写敏感）和“~\*”（大小写不敏感）运算符匹配变量和正则表达式。
+
+        正则表达式可以包含匹配组，匹配结果后续可以使用变量$1..$9引用。如果正则表达式中包含字符“}”或者“;”，整个表达式应该被包含在单引号或双引号的引用中
+
+    * 使用“-f”和“!-f”运算符检查文件是否存在
+
+* ` `
+* ` `
+* ` `
+* ` `
+* ` `
+* ` `
+* ` `
+* ` `
+* ` `
+* ` `
