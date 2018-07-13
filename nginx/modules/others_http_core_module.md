@@ -38,7 +38,7 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
 
     指定生效的回复MIME类型，默认值为text/html
 
-## 请求代理模块
+## ngx_http_proxy_module请求代理模块
 
 ### 请求转发
 
@@ -342,7 +342,9 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
 
 ## ngx_http_rewrite_module模块
 
-* `break`：停止处理当前这一轮的ngx_http_rewrite_module指令集。
+**注意此处模块的概念为`ngx_http_rewrite_module`和`ngx_http_proxy_module`此类模块**
+
+* `break`：停止处理当前这一轮的ngx_http_rewrite_module模块，跳过在他们之后的所有rewrite模块指令。
 * `if (condition) { ... }`：if指令会从上一层配置中继承配置
 
     条件可以为下列情况：
@@ -354,14 +356,55 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
         正则表达式可以包含匹配组，匹配结果后续可以使用变量$1..$9引用。如果正则表达式中包含字符“}”或者“;”，整个表达式应该被包含在单引号或双引号的引用中
 
     * 使用“-f”和“!-f”运算符检查文件是否存在
+    * 使用“-d”和“!-d”运算符检查目录是否存在
+    * 使用“-e”和“!-e”运算符检查文件、目录或软连接是否存在
+    * 使用“-x”和“!-x”运算符检查可执行文件
 
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
-* ` `
+    使用示例：
+
+    ```
+    if ($http_user_agent ~ MSIE) {
+        rewrite ^(.*)$ /msie/$1 break;
+    }
+
+    if ($http_cookie ~* "id=([^;]+)(?:;|$)") {
+        set $id $1;
+    }
+
+    if ($request_method = POST) {
+        return 405;
+    }
+
+    if ($slow) {
+        limit_rate 10k;
+    }
+    ```
+
+* `return`：停止处理并返回指定code给客户端，返回非标准的状态码444可以直接关闭连接而不返回响应头
+
+    指令格式：
+
+    * return code URL，指定重定向的URL，状态码为301、302、303和307
+    * return code [text]，指定响应体文本，状态码为其他值
+    * return URL，将使用302临时重定向作为状态码，URL参数应该以“http://”或者“https://”开始
+
+    响应体文本或者重定向URL中可以包含变量
+
+    作为一种特殊情况，重定向URL可以简化为当前server的本地URI，那么完整的重定向URL将按照请求协议（$scheme）、server_name_in_redirect指令和port_in_redirect指令的配置进行补全
+
+* `rewrite regex replacement [flag];`：如果指定的正则表达式能匹配URI，此URI将被replacement参数定义的字符串改写
+
+    rewrite指令按照在配置文件中出现的顺序执行，**如果replacement的字符串以“http://”或“https://”开头，nginx将结束执行过程，并返回给客户端一个重定向**
+
+    flag参数设置后续指令的执行情况
+
+    * last：停止执行当前rewrite模块，**然后查找匹配改变后URI的新location**，注意此处直接去匹配改变后的location，如果是在location中使用，会直接跳出当前location
+    * break：停止执行当前rewrite模块，但是不影响其他模块的执行，如果是在location中使用，不会直接跳出location
+    * redirect：在replacement字符串未以“http://”或“https://”开头时，使用返回状态码为302的临时重定向
+    * perament：返回状态码为301的永久重定向
+
+    如果replacement字符串包括新的请求参数，以往的请求参数会添加到新参数后面。如果不希望这样，在replacement字符串末尾加一个问号“？”，就可以避免
+
+* `rewrite_log on | off;`：开启或者关闭将ngx_http_rewrite_module模块指令的处理日志以notice级别记录到错误日志中。
+* `set variable value;`：为指定变量variable设置变量值value。value可以包含文本、变量或者它们的组合。
+* `uninitialized_variable_warn on | off;`：控制是否记录变量未初始化的警告到日志
