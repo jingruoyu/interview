@@ -166,3 +166,45 @@ lingering_close延迟关闭机制，nginx关闭连接是先关闭tcp连接的写
 close系统调用时如果`tcp write buffer`中有内容则会向客户端发送RST报文丢弃`write buffer`中数据
 
 延迟关闭防止在write()系统调用之后到close()系统调用执行之前`tcp write buffer`中的数据没有发送完毕，导致客户端接收不到相应数据
+
+
+## rewrite阶段
+
+单个请求的处理过程中，前一个阶段的配置指令会无条件的在后一个阶段配置指令之前执行，与书写顺序无关，分属两个不同处理阶段的配置指令之间不能穿插运行
+
+**同一个处理阶段中不同模块的配置指令，执行先后顺序视情况而定**
+
+* 对于第三方模块，`ngx_array_var`、`set_by_lua`等可以与`ngx_rewrite`模块配置指令混合执行，是因为其使用了特殊的第三方模块` ngx_devel_kit`
+
+* 但是更多的第三方模块指令虽然也运行在rewrite阶段，但是其本身与其他模块是分开独立运行的，其执行顺序依赖于模块的加载顺序，所以对应指令的执行先后顺序一般是不确定的
+
+## access阶段
+
+控制访问权限，可以使用`ngx_access`原生模块与`ngx_lua`模块中的access_by_lua指令，**后者运行于access阶段的末尾，晚于access与deny指令**，可以在access请求处理阶段插入lua代码
+
+## content阶段
+
+此阶段用于生成内容并输出HTTP响应，运行于rewrite与access阶段之后
+
+* **避免在同一个location中使用多个模块的content阶段指令**
+
+	绝大多数 Nginx 模块在向 content 阶段注册配置指令时，本质上是在当前的 location 配置块中注册所谓的“内容处理程序”（content handler）。每一个 location 只能有一个“内容处理程序”。因此，当在 location 中同时使用多个模块的 content 阶段指令时，只有其中一个模块能成功注册“内容处理程序”
+
+	nginx中proxy模块的proxy_pass 指令与ngx_echo模块的echo指令同属于content阶段，故不能够同时使用，此问题可以采用输出过滤器的方式避免，`echo_before_body`与`echo_after_body`指令执行于输出过滤器中，可以与proxy_pass同时使用
+
+	**输出过滤器**：nginx在输出响应体数据时，都会调用nginx的输出过滤器，`echo`、`proxy_pass`等指令均会调用，但是输出过滤器不属于任何一个请求阶段，其可以被很多指令调用
+
+* 一个location中多次调用同一个模块中的指令视情况而定
+
+	echo指令可以被多次调用，但是content_by_lua 就不可以
+
+如果location中没有使用content阶段指令，即没有内容处理程序，nginx会将当前请求的URI映射到文件系统的静态资源服务模块，其优先级分别为nginx_index、nginx_autoindex和nginx_static模块
+
+* nginx_index，作用于URI以/结尾的请求，其余请求忽略，同时将处理权移交给content阶段的下一个模块。
+
+	主要用于在root或alias配置下首页文件的获取，会将获取到的文件名添加到路径之后，请求路径将发生改变，**此时将发生内部跳转，重新匹配新路径对应的location块**
+
+	如果获取不到文件，则放弃处理权给content阶段的下一个模块
+
+* nginx_autoindex：找不到index指令对应的文件时，生成
+* nginx_static
