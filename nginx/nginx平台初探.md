@@ -169,3 +169,102 @@ close系统调用时如果`tcp write buffer`中有内容则会向客户端发送
 
 # nginx配置指令的执行顺序
 
+nginx请求处理阶段有11个，常见三个阶段按照执行顺序排列为rewrite、access、content
+
+## rewrite阶段
+
+单个请求的处理过程中，前一个阶段的配置指令会无条件的在后一个阶段配置指令之前执行，与书写顺序无关，分属两个不同处理阶段的配置指令之间不能穿插运行
+
+**同一个处理阶段中不同模块的配置指令，执行先后顺序视情况而定**
+
+* 对于第三方模块，`ngx_array_var`、`set_by_lua`等可以与`ngx_rewrite`模块配置指令混合执行，是因为其使用了特殊的第三方模块` ngx_devel_kit`
+
+* 但是更多的第三方模块指令虽然也运行在rewrite阶段，但是其本身与其他模块是分开独立运行的，其执行顺序依赖于模块的加载顺序，所以对应指令的执行先后顺序一般是不确定的
+
+## access阶段
+
+控制访问权限，可以使用`ngx_access`原生模块与`ngx_lua`模块中的access_by_lua指令，**后者运行于access阶段的末尾，晚于access与deny指令**，可以在access请求处理阶段插入lua代码
+
+## content阶段
+
+此阶段用于生成内容并输出HTTP响应，运行于rewrite与access阶段之后
+
+* **避免在同一个location中使用多个模块的content阶段指令**
+
+	绝大多数 Nginx 模块在向 content 阶段注册配置指令时，本质上是在当前的 location 配置块中注册所谓的“内容处理程序”（content handler）。每一个 location 只能有一个“内容处理程序”。因此，当在 location 中同时使用多个模块的 content 阶段指令时，只有其中一个模块能成功注册“内容处理程序”
+
+	nginx中proxy模块的proxy_pass 指令与ngx_echo模块的echo指令同属于content阶段，故不能够同时使用，此问题可以采用输出过滤器的方式避免，`echo_before_body`与`echo_after_body`指令执行于输出过滤器中，可以与proxy_pass同时使用
+
+	**输出过滤器**：nginx在输出响应体数据时，都会调用nginx的输出过滤器，`echo`、`proxy_pass`等指令均会调用，但是输出过滤器不属于任何一个请求阶段，其可以被很多指令调用
+
+* 一个location中多次调用同一个模块中的指令视情况而定
+
+	echo指令可以被多次调用，但是content_by_lua 就不可以
+
+如果location中没有使用content阶段指令，即没有内容处理程序，nginx会将当前请求的URI映射到文件系统的静态资源服务模块，其优先级分别为nginx_index、nginx_autoindex和nginx_static模块
+
+* nginx_index，作用于URI以/结尾的请求，其余请求忽略，同时将处理权移交给content阶段的下一个模块。
+
+	主要用于在root或alias配置下首页文件的获取，会将获取到的文件名添加到路径之后，请求路径将发生改变，**此时将发生内部跳转，重新匹配新路径对应的location块**
+
+	如果获取不到文件，则放弃处理权给content阶段的下一个模块
+
+* nginx_autoindex：找不到index指令对应的文件时，生成一个HTML，其中包含所有文件及子目录的连接
+
+	类似于index，作用于URI以/结尾的请求，其余请求忽略，同时将处理权移交给content阶段的下一个模块
+
+* nginx_static
+
+	实现静态文件服务功能，将真正的文件发送出去
+
+**注意配置location块中的content阶段指令**，如echo、proxy_pass等，避免其使用默认的静态文件查找导致404错误
+
+## 其他的处理阶段
+
+11个请求处理阶段包括：
+
+* post-read
+
+	在nginx读取并解析完请求头后开始运行，ngx_realip 位于此阶段中
+
+* server-rewrite
+
+	server块中的rewrite指令会在此阶段执行，当匹配到对应的rewrite时，将直接进行跳转
+
+* find-config
+
+	此阶段中nginx完成当前请求与location配置块的配对工作。
+
+	此阶段之前，请求与location块没有任何关联，故只有server块或者更外层作用域中的指令才会起作用，所以之前post-read和server-rewrite中需要执行的指令都必须写在server作用域下
+
+	nginx在此阶段成功匹配到一个location后，会立刻打印一条调试信息到错误日志中
+
+		[debug] 84579#0: *1 using configuration "/hello"
+
+* rewrite
+
+	location配置开始起作用
+
+* post-rewrite
+
+	完成rewrite阶段产生的内部跳转。
+
+	内部跳转是将当前请求的处理阶段强行倒回到find-config，重新进行URI与location的匹配，但是**真正的回退操作发生在post-rewrite阶段**，以便完成多次的rewrite指令
+
+* preaccess
+
+	access阶段之前进行，标准模块 ngx_limit_req 和 ngx_limit_zone运行于此阶段，ngx_realip 也在这个阶段注册了处理程序
+
+* access
+* post-access
+
+	不支持模块注册处理程序，主要用于配合 access 阶段实现标准 ngx_http_core 模块提供的配置指令 `satisfy` 的功能，进行与access相关条件的综合判断
+
+* try-files
+
+	运行try-files指令
+
+* content
+* log
+
+

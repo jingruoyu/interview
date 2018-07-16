@@ -376,6 +376,8 @@ location中使用，指定一个路径是否只能用于内部访问，外部访
 
     path路径可以包含除`$document_root`和`$realpath_root`以外的变量
 
+    如果没有指定root，则默认根目录为configure prefix配置路径下的的html子目录，configure prefix配置可以在nginx运行时通过参数指定，默认为nginx的安装目录
+
 * `satisfy all | any`：访问权限控制，默认为all
 
     nginx进行访问限制的有ngx_http_access_module模块和 ngx_http_auth_basic_module模块
