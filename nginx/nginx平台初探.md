@@ -166,3 +166,6 @@ lingering_close延迟关闭机制，nginx关闭连接是先关闭tcp连接的写
 close系统调用时如果`tcp write buffer`中有内容则会向客户端发送RST报文丢弃`write buffer`中数据
 
 延迟关闭防止在write()系统调用之后到close()系统调用执行之前`tcp write buffer`中的数据没有发送完毕，导致客户端接收不到相应数据
+
+# nginx配置指令的执行顺序
+

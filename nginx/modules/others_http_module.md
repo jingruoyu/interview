@@ -1,4 +1,4 @@
-## 访问IP限制
+## `ngx_http_access_module`访问IP限制
 
 访问IP限制通过`ngx_http_access_module`模块实现，也可以通过密码限制访问，使用satisfy指令进行访问限制条件的控制
 
@@ -22,7 +22,7 @@ location / {
 }
 ```
 
-## response body过滤
+## ngx_http_addition_module过滤模块
 
 ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后加上内容。例如请求index.html，可以在index.html的内容前插入链接指向的内容
 
@@ -408,3 +408,4 @@ ngx_http_addition_module 是一个过滤模块，它可以在回复正文前后�
 * `rewrite_log on | off;`：开启或者关闭将ngx_http_rewrite_module模块指令的处理日志以notice级别记录到错误日志中。
 * `set variable value;`：为指定变量variable设置变量值value。value可以包含文本、变量或者它们的组合。
 * `uninitialized_variable_warn on | off;`：控制是否记录变量未初始化的警告到日志
+
