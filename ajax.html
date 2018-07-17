@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>ajax</title>
+</head>
+<body>
+	<script>
+	var xhr = new XMLHttpRequest();
+	xhr.onreadystatechange = function(){
+		if(xhr.readyState == 4){
+			if((xhr.status >= 200 && xhr.status <300)||xhr.status == 304){
+				alert(xhr.responseText);
+			}else{
+				alert("fail:"+xhr.status);
+			}
+		}
+	};
+	xhr.open("post","http://10.3.8.211",true);
+	xhr.send("DDDDD=**********&upass=********&savePWD=0&0MKKey=");
+	</script>
+</body>
+</html>
